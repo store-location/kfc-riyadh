@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KFC RIYADH</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        body {
+    font-family: Friz Quadrata, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: #f4f4f4;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+}
+
+h1 {
+    text-align: left;
+    color: #d62300;
+    margin: 10px 0;
+    font-size: 2.5em;
+    z-index: 1000;
+    background-color: #ffffffd9; /* Semi-transparent background */
+    padding: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+#map {
+    flex-grow: 1;
+    width: 100%;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+#nearest-store-button {
+    position: fixed;
+    top: 10px;
+    right: 10px;
+    padding: 10px 20px;
+    background-color: #d62300;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    z-index: 1001;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s, transform 0.3s;
+}
+
+#nearest-store-button:hover {
+    background-color: #ff6347;
+    transform: scale(1.05);
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 1.8em;
+    }
+
+    #nearest-store-button {
+        padding: 8px 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 1.5em;
+        padding: 5px;
+    }
+
+    #nearest-store-button {
+        padding: 6px 12px;
+    }
+}   
+ </style>
+</head>
+<body>
+    <h1>KFC RIYADH</h1>
+    <div id="map"></div>
+    <button id="nearest-store-button" onclick="getLocation()">Visit This Store</button>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+// Custom KFC pin icon
+        const kfcIcon = L.icon({
+            iconUrl: 'https://global.kfc.com/images/logo.svg', // Replace with a correct URL or local path to your KFC icon
+            iconSize: [38, 45], // size of the icon
+            iconAnchor: [22, 45], // point of the icon which will correspond to marker's location
+            popupAnchor: [-3, -76] // point from which the popup should open relative to the iconAnchor
+        });
+
+        // Your store locations
+        const stores = [
+    {
+        "name": "KFC Tahkassose street, Euromarche market",
+        "lat": 24.704604021361448,
+        "lng": 46.664830315797865,
+        "url": "https://www.google.com/maps?q=24.704604021361448,46.664830315797865"
+    },
+    ];
+        const map = L.map('map').setView([24.704602897948593, 46.66482836235672], 15);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+        stores.forEach(store => {
+            const marker = L.marker([store.lat, store.lng], { icon: kfcIcon }).addTo(map)
+                .bindPopup(`<strong style="color: #d62300; font-size: 1.2em;">${store.name}</strong><br><a href="${store.url}" target="_blank" style="color: #007bff;">Open in Google Maps</a>`);
+        });
+
+        // Show welcome popup
+        const welcomePopup = L.popup()
+            .setLatLng([24.704602897948593, 46.66482836235672])
+            .setContent('<b>Welcome to KFC Tahkassose street, Euromarche market!</b><br>Click "Visit this Store" to grab your special offer.')
+            .openOn(map);
+
+       function getLocation() {
+    if (navigator.geolocation) {
+        if (isSafari()) {
+            const userConsent = confirm("This site needs your location to find the nearest store. Please allow location access in the popup.");
+            if (userConsent) {
+                navigator.geolocation.getCurrentPosition(showNearestStore, handleLocationError, {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                });
+            }
+        } else {
+            navigator.geolocation.getCurrentPosition(showNearestStore, handleLocationError, {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            });
+        }
+    } else {
+        alert("Geolocation is not supported by this browser.");
+    }
+}
+
+function isSafari() {
+    return /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+}
+
+function handleLocationError(error) {
+    switch(error.code) {
+        case error.PERMISSION_DENIED:
+            alert("User denied the request for Geolocation.");
+            break;
+        case error.POSITION_UNAVAILABLE:
+            alert("Location information is unavailable.");
+            break;
+        case error.TIMEOUT:
+            alert("The request to get user location timed out.");
+            break;
+        case error.UNKNOWN_ERROR:
+            alert("An unknown error occurred.");
+            break;
+    }
+}
+
+        function showNearestStore(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            let nearestStore = null;
+            let minDistance = Infinity;
+            stores.forEach(store => {
+                const distance = getDistance(userLat, userLng, store.Latitude, store.Longitude);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestStore = store;
+                }
+            });
+            if (nearestStore) {
+                alert(`The nearest store is: ${nearestStore.Location}`);
+                window.open(nearestStore.URL, "_blank");
+            }
+        }
+        function getDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371; // Radius of the Earth in km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLng = deg2rad(lng2 - lng1);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) *
+                      Math.sin(dLng / 2) * Math.sin(dLng / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c; // Distance in km
+            return distance;
+        }
+        function deg2rad(deg) {
+            return deg * (Math.PI / 180);
+        }
+    </script>
+</body>
+</html>
